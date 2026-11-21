@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-const appBase = (process.env.npm_lifecycle_event === 'build:github' ? '/sistema-de-facturacion/' : '/')
+const appBase = '/controls-trifusion/'
 
 export default defineConfig({
   base: appBase,
