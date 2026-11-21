@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema de Control Móvil</title>
+    <meta name="theme-color" content="#0A0A0F" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Facturación" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta
+      name="description"
+      content="Sistema de facturación y control móvil, diseño sensible y funciones optimizadas para phones."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Syne:wght@600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      (function() {
+        var waited = 0, maxWait = 60
+        function check() {
+          if (waited++ > maxWait) return
+          var s = window.__STORE__
+          if (!s || !s.getState) return void setTimeout(check, 500)
+          var state = s.getState()
+          if (!state || !state.verifyDataIntegrity) return void setTimeout(check, 500)
+          if (!state.invoices || state.invoices.length === 0) return void setTimeout(check, 500)
+          try {
+            var report = state.verifyDataIntegrity()
+            var total = (report.invalidStatusInvoices||0)+(report.orphanReceivables||0)+(report.orphanPayments||0)+(report.orphanInventoryMovements||0)+(report.orphanFinancialMovements||0)+(report.orphanCreditNotes||0)
+            if (total > 0) state.cleanupOrphanData()
+            state.recalculateFinancialFields()
+            state.refreshReportStats()
+          } catch(e) { console.error('Auto-cleanup error:', e) }
+        }
+        setTimeout(check, 3000)
+      })()
+    </script>
+  </body>
+</html>

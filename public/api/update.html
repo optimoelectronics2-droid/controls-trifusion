@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta http-equiv="Cache-Control" content="no-store, max-age=0" />
+    <title>Forzando actualización | Trifusion ERP</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: #0a0a0f;
+        color: #f5f5f7;
+        font-family: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      main {
+        width: 100%;
+        max-width: 460px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        padding: 28px;
+      }
+      .eyebrow {
+        margin: 0;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #9ec5ff;
+      }
+      h1 {
+        margin: 8px 0 0;
+        font-size: 24px;
+        line-height: 1.2;
+      }
+      p {
+        margin: 12px 0 0;
+        font-size: 14px;
+        line-height: 1.55;
+        color: rgba(255, 255, 255, 0.62);
+      }
+      ul {
+        margin: 18px 0 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 8px;
+        font-size: 13px;
+      }
+      li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      li::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        flex: 0 0 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.2);
+      }
+      li[data-state="doing"]::before {
+        background: #ffb020;
+        box-shadow: 0 0 0 4px rgba(255, 176, 32, 0.16);
+      }
+      li[data-state="done"]::before {
+        background: #33d17a;
+      }
+      li[data-state="done"] {
+        color: rgba(255, 255, 255, 0.85);
+      }
+      .note {
+        margin-top: 20px;
+        border: 1px solid rgba(51, 209, 122, 0.3);
+        border-radius: 10px;
+        background: rgba(51, 209, 122, 0.08);
+        padding: 12px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #b6f0ce;
+      }
+      a {
+        color: #9ec5ff;
+      }
+      .fallback {
+        display: none;
+        margin-top: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">Mantenimiento local</p>
+      <h1>Actualizando la aplicación</h1>
+      <p>
+        Estamos retirando la versión antigua guardada por el navegador. Al terminar
+        volverás al sistema con la corrección aplicada.
+      </p>
+
+      <ul id="steps">
+        <li data-step="workers">Quitando service workers antiguos</li>
+        <li data-step="caches">Borrando caché de la aplicación</li>
+        <li data-step="reload">Abriendo la versión actualizada</li>
+      </ul>
+
+      <div class="note">
+        Este proceso <strong>no borra tus datos</strong>: clientes, facturas,
+        inventario y configuración guardados en este dispositivo se conservan.
+      </div>
+
+      <p class="fallback" id="fallback">
+        Si la página no redirige sola, abre
+        <a id="manualLink" href="/?v=update">la versión actualizada</a>.
+      </p>
+    </main>
+
+    <script>
+      (function () {
+        var steps = document.getElementById("steps")
+        var fallback = document.getElementById("fallback")
+        var manualLink = document.getElementById("manualLink")
+
+        function mark(name, state) {
+          var item = steps && steps.querySelector('[data-step="' + name + '"]')
+          if (item) item.setAttribute("data-state", state)
+        }
+
+        function targetUrl() {
+          var base = window.location.pathname.replace(/\/api\/update\.html$/, "/")
+          if (!base || base === "/api/update.html") base = "/"
+          return base + "?v=" + Date.now()
+        }
+
+        function go() {
+          var url = targetUrl()
+          manualLink.href = url
+          mark("reload", "doing")
+          window.location.replace(url)
+        }
+
+        async function clearServiceWorkers() {
+          mark("workers", "doing")
+          if (!("serviceWorker" in navigator)) {
+            mark("workers", "done")
+            return
+          }
+          try {
+            var registrations = await navigator.serviceWorker.getRegistrations()
+            await Promise.all(
+              registrations.map(function (registration) {
+                return registration.unregister().catch(function () {})
+              })
+            )
+          } catch (error) {
+            console.warn("[Update] No se pudieron quitar los service workers:", error)
+          }
+          mark("workers", "done")
+        }
+
+        async function clearCaches() {
+          mark("caches", "doing")
+          if (!("caches" in window)) {
+            mark("caches", "done")
+            return
+          }
+          try {
+            var keys = await caches.keys()
+            await Promise.all(
+              keys.map(function (key) {
+                return caches.delete(key).catch(function () {})
+              })
+            )
+          } catch (error) {
+            console.warn("[Update] No se pudo borrar la caché:", error)
+          }
+          mark("caches", "done")
+        }
+
+        async function run() {
+          await clearServiceWorkers()
+          await clearCaches()
+          // Pequeña pausa para que el navegador termine de soltar el control.
+          setTimeout(go, 350)
+        }
+
+        fallback.style.display = "block"
+        manualLink.href = targetUrl()
+        setTimeout(function () {
+          fallback.style.display = "block"
+        }, 8000)
+
+        run()
+      })()
+    </script>
+  </body>
+</html>

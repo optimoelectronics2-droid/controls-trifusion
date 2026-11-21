@@ -1,0 +1,36 @@
+html, body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+[role="button"],
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/* Mobile-first adjustments. */
+@media (max-width: 640px) {
+  :root {
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --header-h: 56px;
+  }
+  body {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --radius-lg: 14px;
+    --radius-xl: 18px;
+  }
+  body {
+    font-size: 14.5px;
+  }
+}
