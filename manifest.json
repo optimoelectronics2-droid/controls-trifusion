@@ -1,7 +1,7 @@
 {
   "name": "Sistema de Control Móvil",
   "short_name": "Control Móvil",
-  "description": "Sistema de control de gastos móvil conectado directamente al Web App de CONTROL.",
+  "description": "Sistema de control de gastos móvil conectado directamente a la base de datos trifusion-cotizador.",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
