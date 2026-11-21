@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getControlSummary, getControlMovements, getControlNotifications, movementLabel, summarizeSummary } from "./lib/controlData.js";
-import { getFacturaciónSummaryData, summarizeFacturación } from "./lib/facturacionSummary.js";
+import { getFacturacionSummaryData, summarizeFacturacion } from "./lib/facturacionSummary.js";
 import { currency } from "./lib/formatters.js";
 
 export default function App() {
@@ -9,7 +9,7 @@ export default function App() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [facturación, setFacturación] = useState({ total: "0.00", pending: "0.00", paid: "0.00", expenseCount: 0 });
+  const [facturacion, setFacturacion] = useState({ total: "0.00", pending: "0.00", paid: "0.00", expenseCount: 0 });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -18,14 +18,14 @@ export default function App() {
       getControlSummary(),
       getControlMovements(15),
       getControlNotifications(),
-      getFacturaciónSummaryData().catch(() => ({ total: 0, pending: 0, paid: 0, expenseCount: 0 })),
+      getFacturacionSummaryData().catch(() => ({ total: 0, pending: 0, paid: 0, expenseCount: 0 })),
     ]);
     if (results.every((result) => result.status === "rejected")) setError("No se pudo cargar el control de gastos.");
     else {
       setSummary(results[0].status === "fulfilled" ? results[0].value : {});
       setMovements(results[1].status === "fulfilled" ? results[1].value : []);
       setNotifications(results[2].status === "fulfilled" ? results[2].value.rows : []);
-      setFacturación(summarizeFacturación(results[3].status === "fulfilled" ? results[3].value : { total: 0, pending: 0, paid: 0, expenseCount: 0 }));
+      setFacturacion(summarizeFacturacion(results[3].status === "fulfilled" ? results[3].value : { total: 0, pending: 0, paid: 0, expenseCount: 0 }));
     }
     setLoading(false);
   }, []);
@@ -39,7 +39,7 @@ export default function App() {
         getControlSummary(),
         getControlMovements(15),
         getControlNotifications(),
-        getFacturaciónSummaryData().catch(() => ({ total: 0, pending: 0, paid: 0, expenseCount: 0 })),
+        getFacturacionSummaryData().catch(() => ({ total: 0, pending: 0, paid: 0, expenseCount: 0 })),
       ]);
       if (active) {
         if (results.every((result) => result.status === "rejected")) setError("No se pudo cargar el control de gastos.");
@@ -47,7 +47,7 @@ export default function App() {
           setSummary(results[0].status === "fulfilled" ? results[0].value : {});
           setMovements(results[1].status === "fulfilled" ? results[1].value : []);
           setNotifications(results[2].status === "fulfilled" ? results[2].value.rows : []);
-          setFacturación(summarizeFacturación(results[3].status === "fulfilled" ? results[3].value : { total: 0, pending: 0, paid: 0, expenseCount: 0 }));
+          setFacturacion(summarizeFacturacion(results[3].status === "fulfilled" ? results[3].value : { total: 0, pending: 0, paid: 0, expenseCount: 0 }));
         }
       }
       setLoading(false);
@@ -77,10 +77,10 @@ export default function App() {
           <Kpi label="Pendiente" value={currency.format(totals.pendiente)} tone="amber" />
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Kpi label="Facturación total" value={facturación.total} tone="blue" />
-          <Kpi label="Facturación pendiente" value={facturación.pending} tone="amber" />
-          <Kpi label="Facturación pagada" value={facturación.paid} tone="green" />
-          <Kpi label="Facturación docs" value={facturación.expenseCount} raw />
+          <Kpi label="Facturacion total" value={facturacion.total} tone="blue" />
+          <Kpi label="Facturacion pendiente" value={facturacion.pending} tone="amber" />
+          <Kpi label="Facturacion pagada" value={facturacion.paid} tone="green" />
+          <Kpi label="Facturacion docs" value={facturacion.expenseCount} raw />
         </div>
       </section>
 
