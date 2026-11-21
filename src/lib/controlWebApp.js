@@ -4,7 +4,7 @@ export const CONTROL_TOKEN = "15a6c0cfcaf843028000f812b5c3174b";
 export async function controlApiGet(action, params = {}) {
   const q = new URLSearchParams({ action, token: CONTROL_TOKEN, ...params });
   const response = await fetch(`${CONTROL_WEB_APP_URL}?${q.toString()}`, {
-    credentials: "include",
+    credentials: "omit",
     headers: { Accept: "application/json" },
   });
   const data = await response.json();
