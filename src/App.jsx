@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getControlSummary, getControlMovements, getControlNotifications, movementLabel, summarizeSummary } from "./lib/controlData.js";
+import { getFacturacionSummaryData, summarizeFacturacion } from "./lib/facturacionSummary.js";
 import { currency } from "./lib/formatters.js";
 
 export default function App() {
@@ -8,19 +9,22 @@ export default function App() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [facturacion, setFacturacion] = useState({ total: "0.00", pending: "0.00", paid: "0.00", expenseCount: 0 });
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const [summaryData, movementsData, notificationsData] = await Promise.all([
+      const [summaryData, movementsData, notificationsData, facturacionData] = await Promise.all([
         getControlSummary(),
         getControlMovements(15),
         getControlNotifications(),
+        getFacturacionSummaryData().catch(() => ({ total: 0, pending: 0, paid: 0, expenseCount: 0 })),
       ]);
       setSummary(summaryData);
       setMovements(movementsData);
       setNotifications(notificationsData.rows);
+      setFacturacion(summarizeFacturacion(facturacionData));
     } catch (e) {
       setError(e?.message || "No se pudo cargar el control de gastos.");
     } finally {
@@ -34,15 +38,17 @@ export default function App() {
       setLoading(true);
       setError("");
       try {
-        const [summaryData, movementsData, notificationsData] = await Promise.all([
+        const [summaryData, movementsData, notificationsData, facturacionData] = await Promise.all([
           getControlSummary(),
           getControlMovements(15),
           getControlNotifications(),
+          getFacturacionSummaryData().catch(() => ({ total: 0, pending: 0, paid: 0, expenseCount: 0 })),
         ]);
         if (active) {
           setSummary(summaryData);
           setMovements(movementsData);
           setNotifications(notificationsData.rows);
+          setFacturacion(summarizeFacturacion(facturacionData));
         }
       } catch (e) {
         if (active) setError(e?.message || "No se pudo cargar el control de gastos.");
@@ -70,9 +76,15 @@ export default function App() {
       <section className="mx-auto max-w-2xl px-4 py-5 sm:px-6">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Kpi label="Ingresos" value={currency.format(totals.ingresos)} tone="green" />
-          <Kpi label="Gastos" value={currency.format(totals.gastos)} tone="red" />
-          <Kpi label="Resultado" value={currency.format(totals.resultado)} tone="violet" />
+          <Kpi label="Gastos Control" value={currency.format(totals.gastos)} tone="red" />
+          <Kpi label="Resultado Control" value={currency.format(totals.resultado)} tone="violet" />
           <Kpi label="Pendiente" value={currency.format(totals.pendiente)} tone="amber" />
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Kpi label="Facturación total" value={facturacion.total} tone="blue" />
+          <Kpi label="Facturación pendiente" value={facturacion.pending} tone="amber" />
+          <Kpi label="Facturación pagada" value={facturacion.paid} tone="green" />
+          <Kpi label="Facturación docs" value={facturacion.expenseCount} raw />
         </div>
       </section>
 

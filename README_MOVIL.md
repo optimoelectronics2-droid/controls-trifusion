@@ -1,6 +1,9 @@
 # Sistema de Control Móvil
 
-Aplicación PWA para telefonos que usa la tabla y el Web App de CONTROL (`script.google.com/macros/s/...`), sin duplicar datos: la app lee movimientos, resumen financiero y notificaciones directamente del sistema de CONTROL.
+Aplicación PWA para telefonos que usa:
+- la tabla y Web App de CONTROL (`script.google.com/macros/s/...`) para movimientos, resumen financiero y notificaciones.
+- Firebase/Firestore (`trifusion-cotizador`) para datos de facturación si están autorizados.
+Sin duplicar datos: la app lee directamente del sistema de CONTROL y de Firebase.
 
 ## Instalación
 - Via Chrome/Edge: abre el sitio desplegado y usa "Agregar a la pantalla principal".
