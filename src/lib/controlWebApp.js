@@ -22,7 +22,7 @@ export async function controlApiPost(action, body = {}) {
     credentials: "omit",
     headers: {
       Accept: "application/json",
-      "Content-Type": "application/json",
+      "Content-Type": "text/plain",
     },
     body: JSON.stringify({ token: CONTROL_TOKEN, ...body }),
   });

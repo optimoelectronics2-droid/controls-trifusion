@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "./Button.jsx";
+import { Modal } from "./Modal.jsx";
 import { confirmMovement } from "../../lib/controlData.js";
 
 export function ConfirmMovementForm({ open, movement, onClose, onSuccess }) {
@@ -13,7 +14,7 @@ export function ConfirmMovementForm({ open, movement, onClose, onSuccess }) {
     try {
       await confirmMovement(movement.id, new Date().toISOString().slice(0, 10));
       setLoading(false);
-      onSuccess();
+      onSuccess && onSuccess(movement);
       onClose();
     } catch (err) {
       setLoading(false);

@@ -3,7 +3,7 @@ import { Button } from "./Button.jsx";
 import { Input } from "./Input.jsx";
 import { Select } from "./Select.jsx";
 import { Textarea } from "./Textarea.jsx";
-import { createQuickMovement } from "../../lib/controlData.js";
+import { Modal } from "./Modal.jsx";
 
 const TIPOS = ["Ingreso", "Gasto operativo", "Inversión"];
 const CATEGORIAS_INGRESO = ["Ventas", "Servicios", "Otros ingresos"];
@@ -39,9 +39,9 @@ export function NewMovementForm({ open, onClose, onSuccess }) {
         fecha: fecha || new Date().toISOString().slice(0, 10),
         signo,
       };
-      await createQuickMovement(datos);
+      if (!importe || Number(importe) <= 0) throw new Error("Monto inválido");
+      onSuccess && onSuccess(datos);
       setLoading(false);
-      onSuccess();
       onClose();
     } catch (err) {
       setLoading(false);

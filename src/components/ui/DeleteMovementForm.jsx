@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "./Button.jsx";
+import { Modal } from "./Modal.jsx";
 import { deleteQuickMovement } from "../../lib/controlData.js";
 
 export function DeleteMovementForm({ open, movement, onClose, onSuccess }) {
@@ -13,7 +14,7 @@ export function DeleteMovementForm({ open, movement, onClose, onSuccess }) {
     try {
       await deleteQuickMovement(movement.id, "Eliminado desde app móvil");
       setLoading(false);
-      onSuccess();
+      onSuccess && onSuccess(movement);
       onClose();
     } catch (err) {
       setLoading(false);

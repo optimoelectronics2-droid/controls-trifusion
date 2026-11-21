@@ -120,7 +120,7 @@ export default function App() {
         </section>
 
         <section className="mx-auto max-w-2xl px-4 sm:px-6">
-          {error ? <ErrorText message={error} /> : <RecentMovements movements={movements} loading={loading} />}
+          {error ? <ErrorText message={error} /> : <RecentMovements movements={movements} loading={loading} onConfirm={(m) => { setSelectedMovement(m); setConfirmOpen(true); }} onDelete={(m) => { setSelectedMovement(m); setDeleteOpen(true); }} />}
         </section>
 
         <section className="mx-auto max-w-2xl px-4 pb-4 sm:px-6">
