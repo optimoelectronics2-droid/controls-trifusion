@@ -16,15 +16,14 @@ export async function controlApiGet(action, params = {}) {
 }
 
 export async function controlApiPost(action, body = {}) {
-  const q = new URLSearchParams({ action, token: CONTROL_TOKEN });
-  const response = await fetch(`${CONTROL_WEB_APP_URL}?${q.toString()}`, {
+  const response = await fetch(`${CONTROL_WEB_APP_URL}`, {
     method: "POST",
     credentials: "omit",
     headers: {
       Accept: "application/json",
       "Content-Type": "text/plain",
     },
-    body: JSON.stringify({ token: CONTROL_TOKEN, ...body }),
+    body: JSON.stringify({ token: CONTROL_TOKEN, action, ...body }),
   });
   const data = await response.json();
   if (!data || data.ok === false) {
