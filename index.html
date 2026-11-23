@@ -847,12 +847,20 @@ let movAdvTimer = null;
 let histSearchTimer = null;
 let toastTimer = null;
 
+function controlPwaUrl_() {
+  const url = new URL('./', location.href);
+  url.search = '';
+  url.hash = '';
+  return url.href;
+}
+
 function applyInitialData(data) {
   if (!data || typeof data !== 'object') {
     throw new Error('El servidor no devolvió la información financiera. Vuelve a intentarlo.');
   }
   if (data.ok === false) throw new Error(data.error || 'No se pudo cargar la información financiera.');
   state.data = data;
+  state.data.appUrl = controlPwaUrl_();
   state.loading = false;
   state.error = null;
   state.movs = data.detalle || [];
@@ -883,6 +891,7 @@ function applyData(data) {
   }
   if (!state.reportPeriodo) state.reportPeriodo = currentMonth();
   if (!state.reportAnio) state.reportAnio = String(currentMonth().slice(0, 4));
+  state.data.appUrl = controlPwaUrl_();
 }
 
 async function boot() {
@@ -2966,7 +2975,7 @@ function instalarAppUI() {
       '</div>' +
       (state.installPrompt ? '<div class="inline-note" style="margin-top:14px"><strong>Tu navegador permite instalarla directamente.</strong> Usa el botón de abajo.</div>' : '') +
       '<div class="code-box" style="margin-top:14px">' + esc(url || 'Publica el Web App para obtener el enlace permanente.') + '</div>' +
-      '<div class="inline-note" style="margin-top:10px">El acceso directo usa el deployment estable. Si se publica una nueva versión en el mismo deployment, el icono sigue funcionando.</div>',
+      '<div class="inline-note" style="margin-top:10px">El icono se instala desde esta misma dirección. Al publicar nuevas versiones, sigue abriendo CONTROL con tus datos actualizados.</div>',
     footer: (state.installPrompt ? '<button type="button" class="btn btn-primary" data-action="install-prompt">' + icon('download') + ' Instalar ahora</button>' : '') +
       (url ? '<button type="button" class="btn btn-soft" data-action="copy-app-url">' + icon('copy') + ' Copiar enlace</button>' : '') +
       '<button type="button" class="btn" data-action="modal-close">Cerrar</button>'
