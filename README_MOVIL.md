@@ -39,7 +39,7 @@ La PWA nunca recibe el refresh token ni lee Firestore directamente; sigue consum
 
 Se configuran en **Settings → Secrets and variables → Actions**. Si el token de CONTROL se rota, actualiza el secreto y el token embebido de la PWA. Para forzar una sincronización inmediata: **Actions → Sincronizar facturación → Run workflow → force**.
 
-Si en el futuro se restaura la autorización de Apps Script, conviene desplegar también la corrección de `factLeerResumen_` para que el resumen `reportStats` tenga prioridad sobre la caché de facturas. Mientras tanto, el workflow mantiene el resumen correcto.
+La corrección de `factLeerResumen_` ya está desplegada (versión 82): el resumen `reportStats` es la fuente prioritaria cuando es la última sincronización, aunque exista una caché de facturas previa. Así el workflow y el servidor no pueden volver a servir cifras obsoletas. La sincronización nativa de Apps Script (`script.external_request`) sigue sin autorizar; el workflow cubre esa lectura cada 10 minutos.
 
 ## Instalación en el teléfono
 
