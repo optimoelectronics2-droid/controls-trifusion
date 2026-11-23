@@ -22,6 +22,25 @@ https://optimoelectronics2-droid.github.io/controls-trifusion/
 - Las lecturas usan `GET` con `action` y `token`.
 - Las escrituras usan `POST` con `Content-Type: text/plain` y el cuerpo `{ token, action, ... }`.
 
+## Sincronización de facturación
+
+La pantalla **Facturación** lee el resumen consolidado que entrega el Web App de CONTROL. El despliegue actual de Apps Script no tiene autorizado el permiso `script.external_request`, por lo que su sincronización interna con Firestore falla. Para evitar que las cifras se queden congeladas, el workflow `.github/workflows/facturacion-sync.yml` hace esa lectura cada 10 minutos:
+
+1. Renueva la sesión de Firebase con `FIREBASE_REFRESH_TOKEN`.
+2. Lee el documento `reportStats` del proyecto `trifusion-cotizador`.
+3. Envía solo `periods`, `source` y `generatedAt` al Web App mediante `appGuardarFacturacionResumen`.
+
+La PWA nunca recibe el refresh token ni lee Firestore directamente; sigue consumiendo únicamente el resumen del backend.
+
+### Secretos del repositorio
+
+- `FIREBASE_REFRESH_TOKEN`: token de la cuenta de facturación.
+- `CONTROL_TOKEN`: token del Web App de CONTROL.
+
+Se configuran en **Settings → Secrets and variables → Actions**. Si el token de CONTROL se rota, actualiza el secreto y el token embebido de la PWA. Para forzar una sincronización inmediata: **Actions → Sincronizar facturación → Run workflow → force**.
+
+Si en el futuro se restaura la autorización de Apps Script, conviene desplegar también la corrección de `factLeerResumen_` para que el resumen `reportStats` tenga prioridad sobre la caché de facturas. Mientras tanto, el workflow mantiene el resumen correcto.
+
 ## Instalación en el teléfono
 
 - Android/Chrome: abre la URL en vivo y elige **Instalar aplicación** o **Añadir a pantalla de inicio**.

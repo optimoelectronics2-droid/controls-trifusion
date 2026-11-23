@@ -993,37 +993,16 @@ async function refrescarNotificaciones() {
 }
 
 const FACT_SYNC_MS = 180000;
-const FACT_BACKOFF_BASE_MS = 15 * 60 * 1000;
-const FACT_BACKOFF_MAX_MS = 60 * 60 * 1000;
 let factSyncTimer = null;
 let factLastSync = 0;
-let factLastServerSync = 0;
-let factSyncBackoffUntil = 0;
-let factBackoffHits = 0;
-
-function factProgramarBackoff_() {
-  factBackoffHits = Math.min(factBackoffHits + 1, 5);
-  const espera = Math.min(FACT_BACKOFF_MAX_MS, FACT_BACKOFF_BASE_MS * Math.pow(2, factBackoffHits - 1));
-  factSyncBackoffUntil = Date.now() + espera;
-}
-
-function factLimpiarBackoff_() {
-  factBackoffHits = 0;
-  factSyncBackoffUntil = 0;
-}
-
-function factUsuarioEscribiendo_() {
-  return hayEdicionActiva_(3000);
-}
 
 /**
- * La app nunca lee Firestore. El servidor sincroniza con un trigger cada
- * 5 minutos y aquí solo se consume el consolidado ya calculado. Así se
- * eliminan los errores 429 y la facturación abre al instante.
+ * La app no lee Firestore directamente. El workflow "Sincronizar facturación"
+ * actualiza el consolidado del servidor cada 10 minutos y aquí solo se
+ * consume ese resumen. Así no se exponen credenciales en la PWA.
  */
 async function sincronizarFacturacion(silent, forzar) {
   const ahora = Date.now();
-  if (ahora < factSyncBackoffUntil) return false;
   if (state.factSyncing) return false;
   if (silent && !forzar && (ahora - factLastSync < 60000)) return false;
   if (hayEdicionActiva_(silent ? 3000 : 0)) return false;
@@ -1034,34 +1013,21 @@ async function sincronizarFacturacion(silent, forzar) {
   const primeraCarga = !state.fact;
   let fresco = false;
   try {
-    // 1) Consolidado instantáneo: el servidor lo tiene en caché.
-    let actual = null;
-    try { actual = await call('appFacturacionResumen', TOKEN, {}); } catch (ignorado) {}
+    const opciones = forzar ? { forzar: true } : {};
+    const actual = await call('appFacturacionResumen', TOKEN, opciones);
     if (actual && actual.ok && actual.conectado) {
+      const anterior = state.fact ? JSON.stringify(state.fact) : '';
       state.fact = actual;
-      if (actual.sincronizado) fresco = true;
+      fresco = anterior !== JSON.stringify(actual);
+    } else if (state.fact) {
+      state.factError = 'stale';
+    } else {
+      state.factError = 'sync';
     }
-
-    // 2) Solo el servidor habla con Firestore, y como máximo cada 5 minutos.
-    //    La primera carga no espera: muestra lo ya consolidado.
-    const tocaServidor = forzar || !factLastServerSync || (ahora - factLastServerSync) >= FACT_SYNC_MS;
-    if (tocaServidor) {
-      try {
-        const r = await call('appSincronizarFacturacion', TOKEN, { forzar: !!forzar });
-        factLastServerSync = Date.now();
-        if (r && r.ok && r.conectado) {
-          state.fact = r;
-          fresco = true;
-          if (r.rateLimit || r.omitido === 'backoff') factProgramarBackoff_();
-          else factLimpiarBackoff_();
-        } else if (r && r.rateLimit) {
-          factProgramarBackoff_();
-        }
-      } catch (e) {
-        factLastServerSync = Date.now();
-      }
-    }
-    if (!state.fact) state.factError = 'sync';
+  } catch (e) {
+    if (state.fact) state.factError = 'stale';
+    else state.factError = 'sync';
+    console.warn('Facturación: ' + (e && e.message ? e.message : e));
   } finally {
     state.factSyncing = false;
     state.factLoading = false;
@@ -1652,7 +1618,7 @@ function tablaNaturaleza(rows, esIngreso) {
 function facturacionView() {
   const f = state.fact;
   const listo = !!(f && f.ok && f.conectado && f.sincronizado);
-  const acciones = '<span class="live-pill"><i></i> ' + (state.factSyncing ? 'Sincronizando…' : (f && f.actualizado ? 'En vivo · ' + esc(fechaHoraTexto(f.actualizado)) : 'En vivo')) + '</span>' +
+  const acciones = '<span class="live-pill"><i></i> ' + (state.factSyncing ? 'Actualizando…' : (f && f.actualizado ? 'Actualizado · ' + esc(fechaHoraTexto(f.actualizado)) : 'Automático')) + '</span>' +
     '<button type="button" class="btn" data-action="fact-refresh">' + icon('refresh') + ' Actualizar</button>' +
     '<button type="button" class="btn btn-soft" data-action="generate-quick" data-tipo="FACTURACION">' + icon('download') + ' PDF facturación</button>';
   const head = pageHead('VENTAS Y GANANCIA', 'Facturación',
@@ -1689,7 +1655,7 @@ function facturacionView() {
     kpiCard('Ganancia del mes (facturación)', money(mes.ganancia), 'target', 'positive', 'Margen ' + pct(mes.margen)) +
     kpiCard('Ventas del mes', money(mes.ventas), 'flow', 'info', (mes.facturas || 0) + ' factura(s)') +
     '</div>' +
-    '<section class="panel"><div class="panel-head"><div><h3 class="panel-title">Ventas y ganancia por periodo</h3><div class="panel-sub">Hoy, semana, mes, año e histórico</div></div><span class="pill pill-success">En vivo</span></div><div class="panel-body" style="padding:0">' +
+    '<section class="panel"><div class="panel-head"><div><h3 class="panel-title">Ventas y ganancia por periodo</h3><div class="panel-sub">Hoy, semana, mes, año e histórico</div></div><span class="pill pill-success">Sincronizado</span></div><div class="panel-body" style="padding:0">' +
     '<div class="table-wrap" style="border:0;border-radius:0"><table class="data"><thead><tr><th>Periodo</th><th class="num">Facturas</th><th class="num">Ventas</th><th class="num">Ganancia</th><th class="num">Ticket</th><th class="num">Margen</th></tr></thead><tbody>' +
     [['Hoy', hoy], ['Semana', semana], ['Mes', mes], ['Año', anio], ['Histórico', historico]].map(function (x) {
       return '<tr><td><b>' + x[0] + '</b></td><td class="num">' + (x[1].facturas || 0) + '</td><td class="num">' + money(x[1].ventas) + '</td><td class="num money-pos">' + money(x[1].ganancia) + '</td><td class="num">' + money(x[1].ticket) + '</td><td class="num">' + pct(x[1].margen) + '</td></tr>';
@@ -1699,14 +1665,15 @@ function facturacionView() {
     '<div class="settings-list">' +
     '<div class="settings-row"><span>Cuenta</span><b>' + esc(f.cuenta || '—') + '</b></div>' +
     '<div class="settings-row"><span>Proyecto</span><b>' + esc(f.projectId || 'trifusion-cotizador') + '</b></div>' +
-    '<div class="settings-row"><span>Fuente</span><b>' + (f.modo === 'reportStats' ? 'Resumen periódico (respaldo)' : 'Facturas sincronizadas') + '</b></div>' +
+    '<div class="settings-row"><span>Fuente</span><b>' + (f.modo === 'reportStats' ? 'Resumen de facturación (automático)' : 'Facturas sincronizadas') + '</b></div>' +
+    '<div class="settings-row"><span>Datos de facturación</span><b>' + esc(f.fuente && f.fuente.generatedAt ? fechaHoraTexto(f.fuente.generatedAt) : '—') + '</b></div>' +
     '<div class="settings-row"><span>Documentos leídos</span><b>' + esc((f.conciliacion && f.conciliacion.leidas) || 0) + '</b></div>' +
     '<div class="settings-row"><span>Únicos / válidos</span><b>' + esc((f.conciliacion && f.conciliacion.unicas) || 0) + ' / ' + esc((f.conciliacion && f.conciliacion.validas) || 0) + '</b></div>' +
     '<div class="settings-row"><span>Duplicados descartados</span><b>' + esc((f.conciliacion && f.conciliacion.duplicadas) || 0) + '</b></div>' +
     '<div class="settings-row"><span>Excluidos</span><b>' + esc((f.conciliacion && f.conciliacion.excluidas) || 0) + '</b></div>' +
     '<div class="settings-row"><span>Actualizado</span><b>' + esc(fechaHoraTexto(f.actualizado)) + '</b></div>' +
     '</div><div class="inline-note" style="margin-top:12px">' + (f.modo === 'reportStats'
-      ? '<strong>Respaldo:</strong> resumen periódico precalculado por la app de facturación. Se usa solo cuando aún no hay facturas sincronizadas; día, semana y mes pueden agruparse en UTC.'
+      ? '<strong>Sincronización automática:</strong> el resumen periódico de la app de facturación se actualiza cada 10 minutos. CONTROL solo lee estas cifras; no modifica facturas, pagos ni gastos.'
       : '<strong>Fórmula estricta:</strong> ganancia = (subtotal − costo) × ratio de pago. Día, semana, mes, año e histórico se agrupan con la fecha local del negocio (America/Santo_Domingo). Se deduplica por NCF, número o ID conservando el documento más reciente. Solo se incluyen facturas reportables.') + '</div>' +
     '</div></section>';
 }
@@ -2110,9 +2077,9 @@ async function eliminarRapidoUI(id, descripcion) {
 async function refrescarFacturacionUI() {
   const fresco = await sincronizarFacturacion(false, true);
   if (fresco && state.fact && state.fact.ok && state.fact.sincronizado) {
-    notify('Facturación actualizada.', 'success');
+    notify('Facturación recargada. La sincronización automática corre cada 10 minutos.', 'success');
   } else if (state.fact && !state.factError) {
-    notify('Facturación al día: no hay facturas nuevas.', 'success');
+    notify('Facturación al día. La sincronización automática corre cada 10 minutos.', 'success');
   } else if (state.fact) {
     notify('Mostrando los últimos datos guardados. La sincronización se reintentará automáticamente.', 'info');
   }

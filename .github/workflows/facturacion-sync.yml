@@ -1,0 +1,47 @@
+name: Sincronizar facturación
+
+on:
+  schedule:
+    # GitHub Actions no garantiza el minuto exacto, pero mantiene el resumen
+    # actualizado con una frecuencia de 10 minutos.
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Guardar aunque el resumen no haya cambiado'
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches: [master]
+    paths:
+      - 'scripts/sync-facturacion.mjs'
+      - '.github/workflows/facturacion-sync.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: facturacion-sync
+  cancel-in-progress: false
+
+jobs:
+  sincronizar:
+    name: Leer Firestore y actualizar el Web App
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Sincronizar facturación
+        env:
+          FIREBASE_REFRESH_TOKEN: ${{ secrets.FIREBASE_REFRESH_TOKEN }}
+          CONTROL_TOKEN: ${{ secrets.CONTROL_TOKEN }}
+          FORCE_SYNC: ${{ inputs.force }}
+        run: node scripts/sync-facturacion.mjs

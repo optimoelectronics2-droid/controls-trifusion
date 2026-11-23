@@ -1,4 +1,4 @@
-const CACHE = 'control-pwa-v2';
+const CACHE = 'control-pwa-v3';
 const SCOPE = self.registration.scope;
 const APP_SHELL = ['./', './manifest.json', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png']
   .map((path) => new URL(path, SCOPE).href);
