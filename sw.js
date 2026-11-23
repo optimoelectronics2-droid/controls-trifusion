@@ -1,5 +1,7 @@
-const CACHE = 'control-pwa-v1';
-const APP_SHELL = ['/', '/manifest.json', '/icons/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png'];
+const CACHE = 'control-pwa-v2';
+const SCOPE = self.registration.scope;
+const APP_SHELL = ['./', './manifest.json', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png']
+  .map((path) => new URL(path, SCOPE).href);
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -31,7 +33,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => undefined);
           return response;
         })
-        .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
+        .catch(() => caches.match(request).then((cached) => cached || caches.match(new URL('./', SCOPE).href)))
     );
     return;
   }
